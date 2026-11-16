@@ -1,0 +1,80 @@
+{
+  "app_version": "0.1.0",
+  "generated": "2026-11-16T17:28:00.156Z",
+  "runtime_s": 18,
+  "seeds": {
+    "e1_e2": 1000,
+    "e3": 2000,
+    "e4": 3000
+  },
+  "experiments": {
+    "e1": "12 drivers × 20 min × 8 thresholds × 2 noise levels, 30 fps",
+    "e2": "12 drivers × 20 min × 5 frame rates, default threshold",
+    "e3": "12 drivers (open-eye EAR 0.22–0.34) × personal vs fixed threshold",
+    "e4": "30 drivers × 30 min, per-minute aggregation"
+  },
+  "defaults": {
+    "calibrationMs": 10000,
+    "minCalibrationFrames": 30,
+    "eyeClosedRatio": 0.65,
+    "eyeClosedAbsolute": 0.2,
+    "useBaselineForEyes": true,
+    "minBlinkMs": 50,
+    "longClosureMs": 800,
+    "criticalClosureMs": 1500,
+    "perclosWindowMs": 60000,
+    "perclosMinCoverageMs": 10000,
+    "yawnMar": 0.5,
+    "yawnBaselineMargin": 0.3,
+    "yawnMinMs": 1500,
+    "headPitchDeg": 20,
+    "headYawDeg": 30,
+    "haarHeadShift": 0.35,
+    "headDevMinMs": 1500,
+    "faceLostMs": 2000,
+    "maxGapMs": 1000,
+    "eventWindowMs": 300000,
+    "scoreWeights": {
+      "perclos": 0.45,
+      "longClosures": 0.2,
+      "yawns": 0.15,
+      "blinkDuration": 0.1,
+      "head": 0.1
+    },
+    "perclosHigh": 0.15,
+    "longClosuresHigh": 3,
+    "yawnsHigh": 3,
+    "headEventsHigh": 3,
+    "blinkDurNormalMs": 150,
+    "blinkDurHighMs": 400,
+    "scoreSmoothingMs": 3000,
+    "criticalHoldMs": 10000,
+    "criticalScore": 90,
+    "levelHysteresis": 5,
+    "levels": [
+      {
+        "id": "ok",
+        "min": 0
+      },
+      {
+        "id": "mild",
+        "min": 30
+      },
+      {
+        "id": "moderate",
+        "min": 55
+      },
+      {
+        "id": "high",
+        "min": 75
+      }
+    ],
+    "alertCooldownMs": {
+      "mild": 120000,
+      "moderate": 45000,
+      "high": 12000,
+      "critical": 4000
+    }
+  },
+  "fatigueAt": "function fatigueAt(d, ms) {\n  const m = ms / 60_000;\n  const span = Math.max(1, d.minutes - d.onsetMin - 2);\n  return d.fMax * clamp01((m - d.onsetMin) / span);\n}"
+}

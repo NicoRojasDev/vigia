@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Your own exported sessions stay private / Tus sesiones exportadas quedan privadas
+vigia-*.csv
+data/private/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

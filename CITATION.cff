@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Vigía in your work, please cite it as below."
+title: "Vigía: on-device driver fatigue detection in the browser"
+abstract: "Open-source prototype that estimates driver fatigue (EAR, PERCLOS, yawns, head pose) with MediaPipe and OpenCV.js entirely on the user's device, with a Python toolkit for analysis."
+authors:
+  - family-names: "Rojas"
+    given-names: "Carlos Nicolás"
+version: 0.1.0
+date-released: 2026-11-16
+license: MIT
+repository-code: "https://github.com/NicoRojasDev/vigia"
+keywords:
+  - computer vision
+  - driver drowsiness
+  - PERCLOS
+  - MediaPipe
+  - OpenCV
+  - privacy by design

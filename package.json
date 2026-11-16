@@ -1,0 +1,17 @@
+{
+  "name": "vigia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Driver fatigue detection that runs 100% in the browser (MediaPipe + OpenCV.js) / Detector de fatiga al volante que funciona 100 % en el navegador",
+  "type": "module",
+  "license": "MIT",
+  "author": "Carlos Nicolás Rojas",
+  "scripts": {
+    "test": "node --test \"tests/js/*.test.mjs\"",
+    "simulate": "node scripts/simulate_session.mjs",
+    "serve": "python -m http.server 8000 --directory web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

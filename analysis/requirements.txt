@@ -1,0 +1,7 @@
+# Vigía analysis — Python 3.10+
+numpy>=1.26
+pandas>=2.1
+matplotlib>=3.8
+pytest>=8.0
+# notebooks / cuadernos
+jupyter>=1.0

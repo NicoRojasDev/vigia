@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!--
+      Privacy by design / Privacidad desde el diseño:
+      connect-src only allows this site and the two hosts that serve the MediaPipe
+      code and model. Any other outgoing request (analytics, MediaPipe usage
+      metrics to odml.pa.googleapis.com, etc.) is blocked by the browser.
+      connect-src solo permite este sitio y los dos hosts que sirven el código y el
+      modelo de MediaPipe. El navegador bloquea cualquier otra conexión saliente.
+      data: in connect-src lets OpenCV.js read its own embedded WebAssembly (local, no network).
+      'unsafe-eval' is required by OpenCV.js 4.5.2 (Emscripten embind uses new Function).
+      Opened CSV files are only rendered as text (textContent), so the XSS risk it adds is low.
+      'unsafe-eval' lo necesita OpenCV.js 4.5.2; la página no muestra contenido de terceros.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self' data: https://cdn.jsdelivr.net https://storage.googleapis.com; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; style-src 'self'; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="description"
+      content="Vigía: prototipo abierto de detección de fatiga para conductores que funciona 100 % en el navegador. / Open-source driver fatigue detection prototype that runs fully in the browser."
+    />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Vigía — detector de fatiga al volante</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1220'/%3E%3Cpath d='M8 32s9-14 24-14 24 14 24 14-9 14-24 14S8 32 8 32z' fill='none' stroke='%2322c55e' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%2322c55e'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M8 32s9-14 24-14 24 14 24 14-9 14-24 14S8 32 8 32z" fill="none" stroke="currentColor" stroke-width="5" />
+          <circle cx="32" cy="32" r="7" fill="currentColor" />
+        </svg>
+        <div>
+          <h1>Vigía</h1>
+          <p class="tagline" data-i18n="app.tagline">Detector de fatiga al volante</p>
+        </div>
+      </div>
+      <button id="langBtn" class="ghost small" type="button" data-i18n="btn.lang">EN</button>
+    </header>
+
+    <main id="main">
+      <p class="privacy-badge">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1zm2 0h8V8a4 4 0 1 0-8 0v2z" fill="currentColor" />
+        </svg>
+        <span data-i18n="privacy.badge">El video nunca sale de tu teléfono</span>
+      </p>
+
+      <nav class="tabs" role="tablist" aria-label="Vigía">
+        <button id="tab-monitor" class="tab" role="tab" type="button" data-tab="monitor" aria-controls="panel-monitor" aria-selected="true" data-i18n="tab.monitor">Monitor</button>
+        <button id="tab-data" class="tab" role="tab" type="button" data-tab="data" aria-controls="panel-data" aria-selected="false" tabindex="-1" data-i18n="tab.data">Mis datos</button>
+        <button id="tab-lab" class="tab" role="tab" type="button" data-tab="lab" aria-controls="panel-lab" aria-selected="false" tabindex="-1" data-i18n="tab.lab">Laboratorio de datos</button>
+      </nav>
+
+      <section id="stage" class="stage">
+        <div class="video-wrap">
+          <div id="miniBadge" class="mini-badge" data-level="ok" aria-hidden="true"></div>
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay" aria-hidden="true"></canvas>
+          <div id="placeholder" class="placeholder">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <path d="M8 32s9-14 24-14 24 14 24 14-9 14-24 14S8 32 8 32z" fill="none" stroke="currentColor" stroke-width="3" />
+              <circle cx="32" cy="32" r="6" fill="currentColor" />
+            </svg>
+            <span data-i18n="drive.hint">Configurá todo con el vehículo detenido.</span>
+          </div>
+          <div id="calibration" class="calibration" hidden>
+            <div class="calibration-bar"><div id="calibrationFill"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <div id="panel-monitor" class="panel" role="tabpanel" aria-labelledby="tab-monitor" data-panel="monitor">
+        <section id="scoreCard" class="score-card" data-level="ok" aria-label="Score">
+          <div class="score-value">
+            <span id="scoreValue">0</span><small>/100</small>
+          </div>
+          <div class="score-text">
+            <span class="score-title" data-i18n="metric.score">Índice de fatiga</span>
+            <strong id="levelLabel">Alerta</strong>
+            <span id="levelHint">Todo bien.</span>
+          </div>
+          <div class="score-bar" aria-hidden="true"><div id="scoreBar"></div></div>
+        </section>
+
+        <p id="status" class="status" role="status" aria-live="polite">Listo para empezar</p>
+        <p id="warning" class="warning" role="alert" hidden></p>
+
+        <section class="controls">
+          <div class="engine">
+            <label for="engineSelect" data-i18n="engine.label">Motor de detección</label>
+            <select id="engineSelect">
+              <option value="mediapipe" data-i18n="engine.mediapipe">MediaPipe (recomendado)</option>
+              <option value="haar" data-i18n="engine.haar">Clásico Haar (comparación)</option>
+            </select>
+          </div>
+          <div class="buttons">
+            <button id="startBtn" class="primary" type="button" data-i18n="btn.start">Iniciar</button>
+            <button id="stopBtn" class="danger" type="button" data-i18n="btn.stop" hidden>Detener</button>
+            <button id="driveBtn" type="button" data-i18n="btn.drive" disabled>Modo conducción</button>
+            <button id="testBtn" class="ghost" type="button" data-i18n="btn.testAlarm">Probar alarma</button>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="Metrics">
+          <div class="metric"><span data-i18n="metric.perclos">PERCLOS</span><strong id="m-perclos">—</strong></div>
+          <div class="metric"><span data-i18n="metric.blinkRate">Parpadeos / min</span><strong id="m-blinkRate">—</strong></div>
+          <div class="metric"><span data-i18n="metric.avgBlink">Duración del parpadeo</span><strong id="m-avgBlink">—</strong></div>
+          <div class="metric"><span data-i18n="metric.longClosures">Cierres largos</span><strong id="m-longClosures">—</strong></div>
+          <div class="metric"><span data-i18n="metric.yawns">Bostezos</span><strong id="m-yawns">—</strong></div>
+          <div class="metric"><span data-i18n="metric.head">Cabeceos / desvíos</span><strong id="m-head">—</strong></div>
+          <div class="metric"><span>EAR / MAR</span><strong id="m-earmar">—</strong></div>
+          <div class="metric"><span data-i18n="metric.fps">Cuadros / s</span><strong id="m-fps">—</strong></div>
+        </section>
+
+        <section id="summary" class="summary" hidden>
+          <h2 data-i18n="summary.title">Resumen del viaje</h2>
+          <canvas id="summaryChart" width="640" height="180" aria-hidden="true"></canvas>
+          <dl id="summaryList"></dl>
+          <p class="note" data-i18n="summary.csv_note"></p>
+          <div class="buttons">
+            <button id="downloadBtn" class="primary" type="button" data-i18n="btn.download">Descargar CSV</button>
+            <button id="discardBtn" class="ghost" type="button" data-i18n="btn.discard">Borrar sesión</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="panel-data" class="panel" role="tabpanel" aria-labelledby="tab-data" data-panel="data" hidden>
+        <h2 data-i18n="data.title">Mis datos de esta página</h2>
+        <p class="privacy-note" data-i18n="data.privacy"></p>
+        <p id="memInfo" class="note"></p>
+
+        <article class="card">
+          <h3 data-i18n="data.liveTitle">Ahora, en vivo</h3>
+          <p id="dataNoLive" class="note" data-i18n="data.noLive"></p>
+          <div id="dataLive" hidden>
+            <div id="dataLiveKpis" class="kpis"></div>
+            <h4 data-i18n="data.lastRows">Últimos 15 segundos</h4>
+            <div class="table-wrap"><table id="liveTable"></table></div>
+            <h4 data-i18n="data.recentEvents">Eventos recientes</h4>
+            <ul id="liveEvents" class="event-list"></ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3 data-i18n="data.sessions">Sesiones de esta página</h3>
+          <p id="noSessions" class="note" data-i18n="data.noSessions"></p>
+          <ul id="sessionList" class="session-list"></ul>
+          <div class="buttons">
+            <button id="clearAllBtn" class="ghost" type="button" data-i18n="data.clearAll" disabled>Borrar todo</button>
+          </div>
+        </article>
+      </div>
+
+      <div id="panel-lab" class="panel" role="tabpanel" aria-labelledby="tab-lab" data-panel="lab" hidden>
+        <h2 data-i18n="lab.title">Laboratorio de datos</h2>
+        <p class="lead" data-i18n="lab.intro"></p>
+        <div class="lab-toolbar">
+          <div class="engine">
+            <label for="labSource" data-i18n="lab.source">Fuente de datos</label>
+            <select id="labSource"></select>
+          </div>
+          <div class="buttons">
+            <button id="labSampleBtn" class="ghost" type="button" data-i18n="lab.loadSample">Cargar ejemplo</button>
+            <label class="file-btn">
+              <input id="labFile" type="file" accept=".csv,text/csv" />
+              <span data-i18n="lab.openCsv">Abrir CSV de Vigía</span>
+            </label>
+          </div>
+        </div>
+        <p id="labError" class="warning" role="alert" hidden></p>
+        <p id="labEmpty" class="note" data-i18n="lab.empty"></p>
+        <p id="labNotice" class="warning" hidden></p>
+
+        <div id="labContent" hidden>
+          <div id="labKpis" class="kpis"></div>
+
+          <article class="card">
+            <h3 data-i18n="lab.scoreTitle"></h3>
+            <canvas id="chartScore"></canvas>
+            <p class="note" data-i18n="lab.scoreNote"></p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.contribTitle"></h3>
+            <div id="contribLegend" class="legend"></div>
+            <canvas id="chartContrib"></canvas>
+            <p class="note" data-i18n="lab.contribNote"></p>
+          </article>
+
+          <div class="grid-2">
+            <article class="card">
+              <h3 data-i18n="lab.earTitle"></h3>
+              <canvas id="chartEar"></canvas>
+              <p id="earNote" class="note"></p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="lab.perclosTitle"></h3>
+              <canvas id="chartPerclos"></canvas>
+              <p class="note" data-i18n="lab.perclosNote"></p>
+            </article>
+          </div>
+
+          <article class="card">
+            <h3 data-i18n="lab.histTitle"></h3>
+            <canvas id="chartHist"></canvas>
+            <p id="histNote" class="note"></p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.varTitle"></h3>
+            <div class="engine">
+              <label for="varSelect" data-i18n="lab.varLabel">Variable</label>
+              <select id="varSelect"></select>
+            </div>
+            <div class="grid-2">
+              <canvas id="chartVarHist"></canvas>
+              <canvas id="chartVarScatter"></canvas>
+            </div>
+            <p id="varNote" class="note"></p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.statsTitle"></h3>
+            <div class="table-wrap"><table id="statsTable" class="num"></table></div>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.corrTitle"></h3>
+            <canvas id="chartCorr"></canvas>
+            <p class="note" data-i18n="lab.corrNote"></p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.eventsTitle"></h3>
+            <p id="eventTotals" class="note"></p>
+            <div class="table-wrap short"><table id="eventsTable"></table></div>
+            <p id="eventsNote" class="note"></p>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.reportTitle"></h3>
+            <div id="reportBox" class="report"></div>
+            <div class="buttons">
+              <button id="reportDownload" class="primary" type="button" data-i18n="lab.reportDownload"></button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3 data-i18n="lab.exportTitle"></h3>
+            <p class="note" data-i18n="lab.exportNote"></p>
+            <div class="buttons">
+              <button id="labCsv" type="button">CSV</button>
+              <button id="labJson" type="button">JSON</button>
+            </div>
+          </article>
+
+          <details class="card">
+            <summary data-i18n="lab.dictTitle"></summary>
+            <div class="table-wrap"><table id="dictTable"></table></div>
+          </details>
+
+          <p class="note honest">
+            <span data-i18n="lab.honest"></span>
+            <a id="dsReportLink" href="#" target="_blank" rel="noopener" data-i18n="lab.reportLink"></a>
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <div id="driveView" class="drive-view" data-level="ok" hidden>
+      <div class="drive-score" id="driveScore">0</div>
+      <div class="drive-level" id="driveLevel">Alerta</div>
+      <div class="drive-hint" id="driveHint"></div>
+      <div class="drive-status" id="driveStatus"></div>
+      <button id="exitDriveBtn" class="ghost" type="button" data-i18n="btn.exitDrive">Salir del modo conducción</button>
+    </div>
+
+    <dialog id="checklist" aria-labelledby="checklistTitle">
+      <h2 id="checklistTitle" data-i18n="checklist.title">Antes de salir</h2>
+      <p data-i18n="checklist.intro"></p>
+      <ol>
+        <li data-i18n="checklist.1"></li>
+        <li data-i18n="checklist.2"></li>
+        <li data-i18n="checklist.3"></li>
+        <li data-i18n="checklist.4"></li>
+        <li data-i18n="checklist.5"></li>
+      </ol>
+      <label class="consent">
+        <input type="checkbox" id="consent" />
+        <span data-i18n="checklist.accept">Entiendo y acepto</span>
+      </label>
+      <div class="buttons">
+        <button id="cancelBtn" class="ghost" type="button" data-i18n="btn.cancel">Cancelar</button>
+        <button id="acceptBtn" class="primary" type="button" data-i18n="btn.accept" disabled>Comenzar</button>
+      </div>
+    </dialog>
+
+    <footer>
+      <p data-i18n="footer.disclaimer"></p>
+      <p>
+        <a id="privacyLink" href="#" target="_blank" rel="noopener" data-i18n="footer.privacy">Privacidad y legal</a>
+        ·
+        <a id="codeLink" href="#" target="_blank" rel="noopener" data-i18n="footer.code">Código en GitHub</a>
+        · v<span id="version"></span>
+      </p>
+    </footer>
+
+    <noscript>
+      <p class="warning">Vigía necesita JavaScript para funcionar. / Vigía needs JavaScript to work.</p>
+    </noscript>
+  </body>
+</html>

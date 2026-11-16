@@ -1,0 +1,66 @@
+{
+  "e1": {
+    "default_blink_recall": 1.0,
+    "default_blink_precision": 0.998,
+    "default_long_recall": 0.958,
+    "default_perclos_bias_pts": 1.2,
+    "r085_noise2_blink_precision": 0.615,
+    "r050_blink_recall": 0.968,
+    "best_r_by_blink_f1_noise2": 0.65
+  },
+  "e2": {
+    "blink_recall_5fps": 0.596,
+    "blink_recall_10fps": 0.943,
+    "blink_recall_15fps": 1.0,
+    "blink_recall_30fps": 1.0,
+    "crit_latency_s_5fps": 1.69,
+    "crit_latency_s_15fps": 1.6,
+    "crit_latency_s_30fps": 1.57
+  },
+  "e3": {
+    "small_eyes_false_blinks_per_h_fixed": 744.0,
+    "small_eyes_false_blinks_per_h_personal": 0.0,
+    "small_eyes_perclos_bias_pts_fixed": 6.8,
+    "small_eyes_perclos_bias_pts_personal": 0.9
+  },
+  "e4": {
+    "minutes": 900,
+    "drowsy_share": 0.242,
+    "auc": {
+      "Fatigue score (v0.1)": 0.978,
+      "PERCLOS only": 0.966,
+      "Blink duration only": 0.995,
+      "Long closures only": 0.745,
+      "Yawns only": 0.604
+    },
+    "auc_ci_score": [
+      0.962,
+      0.988
+    ],
+    "moderate_threshold": {
+      "precision": 1.0,
+      "recall": 0.284,
+      "false_positive_rate": 0.0,
+      "tp": 62,
+      "fp": 0,
+      "fn": 156,
+      "tn": 682
+    },
+    "alarm_delay_min_median": 2.0,
+    "alarm_delay_min_iqr": [
+      1.0,
+      5.0
+    ],
+    "drowsy_drivers": 22,
+    "drowsy_drivers_never_alarmed": 1,
+    "alert_drivers_with_false_alarm": 1,
+    "alert_drivers": 8,
+    "youden": {
+      "threshold": 23.2,
+      "tpr": 0.968,
+      "fpr": 0.117,
+      "precision": 0.725,
+      "recall": 0.968
+    }
+  }
+}
